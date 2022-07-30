@@ -6,4 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-git2 = "0.15"
+git2 = "0.14"
+warp = "0.3"
+tokio = { version = "1", features = ["full"] }

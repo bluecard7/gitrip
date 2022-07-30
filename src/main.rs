@@ -1,36 +1,31 @@
-use std::collections::HashMap;
-use warp;
+use tokio;
+use warp::{self, Filter};
 use git2::Repository;
 
 #[tokio::main]
 async fn main() {
-    let mut connection: GitConnection;
-    let connect_filter = warp::path("connect")
+    let connect_filter = warp::post()
+        .and(warp::path("api"))
+        .and(warp::path("v0"))
         .and(warp::path::param())
-        .map(|repo| {
-            connection = connect(repo);
+        .map(|repo: String| {
+            repo
         });
-    warp::post().and(connect_filter);
+    println!("{}", std::env::current_dir().unwrap().to_str().unwrap());
+    warp::serve(connect_filter)
+        .run(([127, 0, 0, 1], 3000))
+        .await;
 }
 
-struct GitConnection {
-    path: String;
-}
 
-impl GitConnection {
-    fn new(repo: String) -> Self {
-        GitConnection{path: repo}
-    }
-}
-
-fn connect(url: String) -> Result<GitConnection, Error> {
+fn connect(url: &str) -> Result<git2::Repository, (git2::Error, git2::Error)> {
     match Repository::open(url) {
-        Ok(repo) => repo,
+        Ok(repo) => Ok(repo),
         Err(open_err) => {
-            match Repository::close(url, "/dev") {
-                Ok(repo) => repo,
-                Err(clone_err) => /* something */,
+            match Repository::clone(url, "/dev") {
+                Ok(repo) => Ok(repo),
+                Err(clone_err) => Err((open_err, clone_err)),
             }
         }
-    };
+    }
 }
